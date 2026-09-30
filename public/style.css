@@ -1,0 +1,221 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #101114;
+    color: #ffffff;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* LOGIN */
+
+#login {
+    max-width: 420px;
+    margin: 80px auto;
+    padding: 35px 25px;
+    background: #1b1d22;
+    border-radius: 16px;
+    text-align: center;
+}
+
+#login h1 {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+#login p {
+    color: #aeb3bd;
+    margin-bottom: 25px;
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 12px;
+    border: 1px solid #353943;
+    border-radius: 10px;
+    background: #111318;
+    color: white;
+    font-size: 16px;
+    outline: none;
+}
+
+input:focus {
+    border-color: #5865f2;
+}
+
+button {
+    width: 100%;
+    min-height: 48px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: 0.2s;
+}
+
+#entrar,
+#criar-sala {
+    background: #5865f2;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* SISTEMA */
+
+.oculto {
+    display: none !important;
+}
+
+#sistema {
+    padding-top: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+header h1 {
+    font-size: 27px;
+}
+
+#usuario-logado {
+    color: #aeb3bd;
+    margin-top: 5px;
+}
+
+#status {
+    background: #1c472c;
+    color: #6ee7a0;
+    padding: 8px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* CARDS */
+
+.painel {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.card {
+    background: #1b1d22;
+    border: 1px solid #292c34;
+    border-radius: 15px;
+    padding: 20px;
+}
+
+.card h2 {
+    font-size: 19px;
+    margin-bottom: 18px;
+}
+
+#usuarios {
+    list-style: none;
+}
+
+#usuarios li {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: #252830;
+    border-radius: 9px;
+}
+
+#usuarios li::first-letter {
+    color: #6ee7a0;
+}
+
+#sala-atual {
+    margin-top: 15px;
+    padding: 12px;
+    background: #252830;
+    border-radius: 9px;
+    color: #aeb3bd;
+}
+
+/* COMUNICAÇÃO */
+
+.comunicacao {
+    grid-column: 1 / -1;
+    text-align: center;
+}
+
+.botao-falar {
+    background: #21a366;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.botao-mutar {
+    background: #343740;
+    color: white;
+}
+
+#microfone-status {
+    margin-top: 15px;
+    color: #aeb3bd;
+}
+
+/* CELULAR */
+
+@media (max-width: 600px) {
+
+    .container {
+        padding: 12px;
+    }
+
+    #login {
+        margin: 50px auto;
+        padding: 30px 20px;
+    }
+
+    #login h1 {
+        font-size: 25px;
+    }
+
+    header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    header h1 {
+        font-size: 23px;
+    }
+
+    .painel {
+        grid-template-columns: 1fr;
+    }
+
+    .comunicacao {
+        grid-column: auto;
+    }
+
+    button {
+        min-height: 52px;
+    }
+}
