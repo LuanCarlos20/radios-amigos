@@ -20,9 +20,8 @@ const configuracaoWebRTC = {
     ]
 };
 
-
 // ==========================================
-// ELEMENTOS DA PÁGINA
+// ELEMENTOS
 // ==========================================
 
 const login = document.getElementById("login");
@@ -45,7 +44,6 @@ const mutarBtn = document.getElementById("mutar");
 const microfoneStatus =
     document.getElementById("microfone-status");
 
-
 // ==========================================
 // ENTRAR
 // ==========================================
@@ -53,95 +51,62 @@ const microfoneStatus =
 entrarBtn.addEventListener("click", entrar);
 
 nomeInput.addEventListener("keydown", (event) => {
-
     if (event.key === "Enter") {
         entrar();
     }
-
 });
 
-
 function entrar() {
-
     const nome = nomeInput.value.trim();
 
     if (!nome) {
-
         alert("Digite seu nome.");
-
         nomeInput.focus();
-
         return;
     }
 
     meuNome = nome;
 
-    socket.emit(
-        "entrar",
-        meuNome
-    );
+    socket.emit("entrar", meuNome);
 
     usuarioLogado.textContent =
         `Logado como: ${meuNome}`;
 
     login.classList.add("oculto");
-
     sistema.classList.remove("oculto");
 }
-
 
 // ==========================================
 // USUÁRIOS ONLINE
 // ==========================================
 
-socket.on(
-    "usuarios-online",
-    (usuarios) => {
+socket.on("usuarios-online", (usuarios) => {
+    usuariosLista.innerHTML = "";
 
-        usuariosLista.innerHTML = "";
+    if (!usuarios.length) {
+        const item = document.createElement("li");
+        item.textContent = "Nenhum usuário online";
+        usuariosLista.appendChild(item);
+        return;
+    }
 
-        if (usuarios.length === 0) {
+    usuarios.forEach((usuario) => {
+        const item = document.createElement("li");
 
-            const item =
-                document.createElement("li");
-
+        if (usuario.id === socket.id) {
             item.textContent =
-                "Nenhum usuário online";
-
-            usuariosLista.appendChild(item);
-
-            return;
+                `🟢 ${usuario.nome} (você)`;
+        } else {
+            item.textContent =
+                `🟢 ${usuario.nome}`;
         }
 
-
-        usuarios.forEach(
-            (usuario) => {
-
-                const item =
-                    document.createElement("li");
-
-
-                if (usuario.id === socket.id) {
-
-                    item.textContent =
-                        `🟢 ${usuario.nome} (você)`;
-
-                } else {
-
-                    item.textContent =
-                        `🟢 ${usuario.nome}`;
-                }
-
-
-                usuariosLista.appendChild(item);
-            }
-        );
-    }
-);
-
+        usuariosLista.appendChild(item);
+    });
+});
 
 // ==========================================
-// CRIAR / ENTRAR NA SALA
+// SALA
 // ==========================================
 
 criarSalaBtn.addEventListener(
@@ -149,108 +114,70 @@ criarSalaBtn.addEventListener(
     entrarNaSala
 );
 
-
 nomeSalaInput.addEventListener(
     "keydown",
     (event) => {
-
         if (event.key === "Enter") {
-
             entrarNaSala();
         }
     }
 );
 
-
 function entrarNaSala() {
-
     const nomeSala =
         nomeSalaInput.value.trim();
 
-
     if (!nomeSala) {
-
         alert("Digite o nome da sala.");
-
         nomeSalaInput.focus();
-
         return;
     }
-
 
     if (!meuNome) {
-
         alert("Entre no sistema primeiro.");
-
         return;
     }
-
 
     salaAtual = nomeSala;
 
-
-    socket.emit(
-        "entrar-sala",
-        {
-            sala: salaAtual,
-            nome: meuNome
-        }
-    );
-
+    socket.emit("entrar-sala", {
+        sala: salaAtual,
+        nome: meuNome
+    });
 
     salaAtualElemento.textContent =
         `🏠 Entrando na sala: ${salaAtual}`;
 
-
     nomeSalaInput.value = "";
 }
-
 
 // ==========================================
 // SALA CONFIRMADA
 // ==========================================
 
-socket.on(
-    "sala-confirmada",
-    (dados) => {
+socket.on("sala-confirmada", (dados) => {
+    salaAtual = dados.sala;
 
-        salaAtual =
-            dados.sala;
+    atualizarTextoSala(
+        dados.quantidade
+    );
+});
 
-
-        atualizarTextoSala(
-            dados.quantidade
-        );
+socket.on("usuarios-na-sala", (quantidade) => {
+    if (!salaAtual) {
+        return;
     }
-);
 
+    atualizarTextoSala(quantidade);
+});
 
-socket.on(
-    "usuarios-na-sala",
-    (quantidade) => {
-
-        if (!salaAtual) {
-            return;
-        }
-
-        atualizarTextoSala(
-            quantidade
-        );
-    }
-);
-
-
-function atualizarTextoSala(
-    quantidade
-) {
-
+function atualizarTextoSala(quantidade) {
     salaAtualElemento.textContent =
         `🏠 Sala atual: ${salaAtual} | 👥 ${quantidade} pessoa(s)`;
 }
 
-
 // ==========================================
-// MICROFONE
+// BOTÃO FALAR
 // ==========================================
 
 falarBtn.addEventListener(
@@ -258,16 +185,13 @@ falarBtn.addEventListener(
     async () => {
 
         if (!microfoneLigado) {
-
             await ligarMicrofone();
-
         } else {
-
             desligarMicrofone();
         }
+
     }
 );
-
 
 // ==========================================
 // LIGAR MICROFONE
@@ -278,66 +202,59 @@ async function ligarMicrofone() {
     try {
 
         if (!salaAtual) {
-
             alert(
                 "Entre em uma sala primeiro."
             );
-
             return;
         }
 
-
+        // Solicita acesso ao microfone
         if (!localStream) {
 
             localStream =
-                await navigator.mediaDevices.getUserMedia(
-                    {
-                        audio: true,
-                        video: false
-                    }
-                );
+                await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    },
+                    video: false
+                });
         }
 
-
+        // Liga o microfone
         localStream
             .getAudioTracks()
-            .forEach(
-                (track) => {
-                    track.enabled = true;
-                }
-            );
-
+            .forEach((track) => {
+                track.enabled = true;
+            });
 
         microfoneLigado = true;
 
-
         atualizarBotaoMicrofone();
 
+        microfoneStatus.textContent =
+            "🎙️ Microfone ligado — você está falando";
 
-        // Conectar com os usuários
-        // que já estão na sala
+        // Avisar servidor
         socket.emit(
             "pronto-para-falar"
         );
 
+        // Adicionar áudio às conexões existentes
+        for (const usuarioId of Object.keys(peers)) {
 
-        const usuariosConectados =
-            Object.keys(peers);
+            const peer =
+                peers[usuarioId];
 
+            if (!peer) {
+                continue;
+            }
 
-        for (
-            const usuarioId
-            of usuariosConectados
-        ) {
+            adicionarAudioAoPeer(peer);
 
-            await criarOferta(
-                usuarioId
-            );
+            await criarOferta(usuarioId);
         }
-
-
-        microfoneStatus.textContent =
-            "🎙️ Microfone ligado — você está falando";
 
     } catch (erro) {
 
@@ -346,17 +263,47 @@ async function ligarMicrofone() {
             erro
         );
 
-
         microfoneStatus.textContent =
             "❌ Não foi possível acessar o microfone.";
 
-
         alert(
-            "Não foi possível acessar o microfone. Verifique a permissão do navegador."
+            "Não foi possível acessar o microfone. Autorize o microfone no Chrome."
         );
     }
 }
 
+// ==========================================
+// ADICIONAR ÁUDIO AO PEER
+// ==========================================
+
+function adicionarAudioAoPeer(peer) {
+
+    if (!localStream) {
+        return;
+    }
+
+    const audioTrack =
+        localStream.getAudioTracks()[0];
+
+    if (!audioTrack) {
+        return;
+    }
+
+    const jaExiste =
+        peer.getSenders().some(
+            (sender) =>
+                sender.track &&
+                sender.track.kind === "audio"
+        );
+
+    if (!jaExiste) {
+
+        peer.addTrack(
+            audioTrack,
+            localStream
+        );
+    }
+}
 
 // ==========================================
 // DESLIGAR MICROFONE
@@ -368,27 +315,19 @@ function desligarMicrofone() {
         return;
     }
 
-
     localStream
         .getAudioTracks()
-        .forEach(
-            (track) => {
-
-                track.enabled = false;
-            }
-        );
-
+        .forEach((track) => {
+            track.enabled = false;
+        });
 
     microfoneLigado = false;
 
-
     atualizarBotaoMicrofone();
-
 
     microfoneStatus.textContent =
         "🔇 Microfone desligado";
 }
-
 
 // ==========================================
 // MUTAR
@@ -399,38 +338,29 @@ mutarBtn.addEventListener(
     () => {
 
         if (!localStream) {
-
             alert(
                 "Ligue o microfone primeiro."
             );
-
             return;
         }
-
 
         const audioTracks =
             localStream.getAudioTracks();
 
-
-        if (audioTracks.length === 0) {
+        if (!audioTracks.length) {
             return;
         }
-
 
         const track =
             audioTracks[0];
 
-
         track.enabled =
             !track.enabled;
-
 
         microfoneLigado =
             track.enabled;
 
-
         atualizarBotaoMicrofone();
-
 
         if (track.enabled) {
 
@@ -444,7 +374,6 @@ mutarBtn.addEventListener(
         }
     }
 );
-
 
 // ==========================================
 // ATUALIZAR BOTÕES
@@ -476,7 +405,6 @@ function atualizarBotaoMicrofone() {
     }
 }
 
-
 // ==========================================
 // USUÁRIO ENTROU NA SALA
 // ==========================================
@@ -490,16 +418,23 @@ socket.on(
             usuario.nome
         );
 
+        const peer =
+            criarPeerConnection(
+                usuario.id
+            );
 
-        // Apenas preparamos a conexão.
-        // Quem acabou de entrar na sala
-        // será responsável pela oferta.
-        criarPeerConnection(
-            usuario.id
-        );
+        // Se já estamos falando,
+        // iniciamos conexão com o novo usuário
+        if (microfoneLigado) {
+
+            adicionarAudioAoPeer(peer);
+
+            await criarOferta(
+                usuario.id
+            );
+        }
     }
 );
-
 
 // ==========================================
 // USUÁRIOS QUE JÁ ESTAVAM NA SALA
@@ -509,25 +444,16 @@ socket.on(
     "usuarios-da-sala",
     async (usuarios) => {
 
-        for (
-            const usuario
-            of usuarios
-        ) {
+        for (const usuario of usuarios) {
 
-            criarPeerConnection(
-                usuario.id
-            );
-        }
+            const peer =
+                criarPeerConnection(
+                    usuario.id
+                );
 
+            if (microfoneLigado) {
 
-        // Se já estiver com microfone ligado,
-        // iniciar as ofertas.
-        if (microfoneLigado) {
-
-            for (
-                const usuario
-                of usuarios
-            ) {
+                adicionarAudioAoPeer(peer);
 
                 await criarOferta(
                     usuario.id
@@ -537,144 +463,136 @@ socket.on(
     }
 );
 
-
 // ==========================================
-// CRIAR CONEXÃO WEBRTC
+// CRIAR PEER CONNECTION
 // ==========================================
 
-function criarPeerConnection(
-    usuarioId
-) {
+function criarPeerConnection(usuarioId) {
 
     if (peers[usuarioId]) {
-
         return peers[usuarioId];
     }
 
+    console.log(
+        "Criando conexão com:",
+        usuarioId
+    );
 
     const peer =
         new RTCPeerConnection(
             configuracaoWebRTC
         );
 
-
     peers[usuarioId] =
         peer;
-
 
     candidatosPendentes[usuarioId] =
         [];
 
-
     // ======================================
-    // ENVIAR ÁUDIO LOCAL
+    // ÁUDIO LOCAL
     // ======================================
 
     if (localStream) {
-
-        localStream
-            .getTracks()
-            .forEach(
-                (track) => {
-
-                    peer.addTrack(
-                        track,
-                        localStream
-                    );
-                }
-            );
+        adicionarAudioAoPeer(peer);
     }
 
-
     // ======================================
-    // RECEBER ÁUDIO DO AMIGO
+    // RECEBER ÁUDIO
     // ======================================
 
-    peer.ontrack =
-        (event) => {
+    peer.ontrack = (event) => {
 
-            console.log(
-                "Áudio recebido de:",
-                usuarioId
+        console.log(
+            "🎧 Áudio recebido de:",
+            usuarioId
+        );
+
+        let audio =
+            document.getElementById(
+                `audio-${usuarioId}`
             );
 
+        if (!audio) {
 
-            let audio =
-                document.getElementById(
-                    `audio-${usuarioId}`
+            audio =
+                document.createElement(
+                    "audio"
                 );
 
+            audio.id =
+                `audio-${usuarioId}`;
 
-            if (!audio) {
+            audio.autoplay = true;
+            audio.playsInline = true;
 
-                audio =
-                    document.createElement(
-                        "audio"
-                    );
+            // Não mostrar controles
+            audio.controls = false;
 
-                audio.id =
-                    `audio-${usuarioId}`;
+            // Mantém o elemento disponível
+            // para reprodução
+            audio.style.position =
+                "fixed";
 
-                audio.autoplay =
-                    true;
+            audio.style.width =
+                "1px";
 
-                audio.playsInline =
-                    true;
+            audio.style.height =
+                "1px";
 
-                audio.controls =
-                    false;
+            audio.style.opacity =
+                "0";
 
-                audio.style.display =
-                    "none";
-
-                document.body.appendChild(
-                    audio
-                );
-            }
-
-
-            if (
-                event.streams &&
-                event.streams[0]
-            ) {
-
-                audio.srcObject =
-                    event.streams[0];
-
-            } else {
-
-                const stream =
-                    new MediaStream(
-                        [event.track]
-                    );
-
-                audio.srcObject =
-                    stream;
-            }
-
-
-            audio.play().catch(
-                (erro) => {
-
-                    console.log(
-                        "O navegador bloqueou o áudio automático.",
-                        erro
-                    );
-                }
+            document.body.appendChild(
+                audio
             );
-        };
+        }
 
+        if (
+            event.streams &&
+            event.streams[0]
+        ) {
+
+            audio.srcObject =
+                event.streams[0];
+
+        } else {
+
+            const stream =
+                new MediaStream([
+                    event.track
+                ]);
+
+            audio.srcObject =
+                stream;
+        }
+
+        audio.play()
+            .then(() => {
+
+                console.log(
+                    "🔊 Áudio reproduzindo:",
+                    usuarioId
+                );
+
+            })
+            .catch((erro) => {
+
+                console.warn(
+                    "Navegador bloqueou áudio automático:",
+                    erro
+                );
+            });
+    };
 
     // ======================================
-    // ICE CANDIDATE
+    // ICE
     // ======================================
 
     peer.onicecandidate =
         (event) => {
 
-            if (
-                event.candidate
-            ) {
+            if (event.candidate) {
 
                 socket.emit(
                     "webrtc-ice",
@@ -687,9 +605,8 @@ function criarPeerConnection(
             }
         };
 
-
     // ======================================
-    // CONEXÃO
+    // ESTADO DA CONEXÃO
     // ======================================
 
     peer.onconnectionstatechange =
@@ -700,6 +617,16 @@ function criarPeerConnection(
                 peer.connectionState
             );
 
+            if (
+                peer.connectionState ===
+                "connected"
+            ) {
+
+                console.log(
+                    "✅ Áudio conectado com:",
+                    usuarioId
+                );
+            }
 
             if (
                 peer.connectionState ===
@@ -707,71 +634,56 @@ function criarPeerConnection(
             ) {
 
                 console.log(
-                    "Conexão falhou:",
+                    "❌ Conexão falhou:",
+                    usuarioId
+                );
+            }
+
+            if (
+                peer.connectionState ===
+                "disconnected"
+            ) {
+
+                console.log(
+                    "⚠️ Usuário desconectado:",
                     usuarioId
                 );
             }
         };
 
-
     return peer;
 }
-
 
 // ==========================================
 // CRIAR OFERTA
 // ==========================================
 
-async function criarOferta(
-    usuarioId
-) {
+async function criarOferta(usuarioId) {
 
     try {
 
         if (!localStream) {
 
             console.log(
-                "Microfone ainda não está ligado."
+                "Microfone não está disponível."
             );
 
             return;
         }
-
 
         const peer =
             criarPeerConnection(
                 usuarioId
             );
 
-
-        // Verificar se já existem
-        // tracks adicionadas
-        if (
-            peer.getSenders().length === 0
-        ) {
-
-            localStream
-                .getTracks()
-                .forEach(
-                    (track) => {
-
-                        peer.addTrack(
-                            track,
-                            localStream
-                        );
-                    }
-                );
-        }
-
+        adicionarAudioAoPeer(peer);
 
         const oferta =
             await peer.createOffer();
 
-
         await peer.setLocalDescription(
             oferta
         );
-
 
         socket.emit(
             "webrtc-offer",
@@ -790,7 +702,6 @@ async function criarOferta(
     }
 }
 
-
 // ==========================================
 // RECEBER OFERTA
 // ==========================================
@@ -804,33 +715,24 @@ socket.on(
             const usuarioId =
                 dados.de;
 
+            console.log(
+                "📡 Oferta recebida de:",
+                usuarioId
+            );
 
             const peer =
                 criarPeerConnection(
                     usuarioId
                 );
 
+            // Se estamos falando,
+            // enviar nosso áudio também
+            if (microfoneLigado) {
 
-            // Se ainda não temos nosso áudio,
-            // podemos apenas responder.
-            if (
-                localStream &&
-                peer.getSenders().length === 0
-            ) {
-
-                localStream
-                    .getTracks()
-                    .forEach(
-                        (track) => {
-
-                            peer.addTrack(
-                                track,
-                                localStream
-                            );
-                        }
-                    );
+                adicionarAudioAoPeer(
+                    peer
+                );
             }
-
 
             await peer.setRemoteDescription(
                 new RTCSessionDescription(
@@ -838,21 +740,16 @@ socket.on(
                 )
             );
 
-
-            // Adicionar ICE que chegou antes
             await adicionarCandidatosPendentes(
                 usuarioId
             );
 
-
             const resposta =
                 await peer.createAnswer();
-
 
             await peer.setLocalDescription(
                 resposta
             );
-
 
             socket.emit(
                 "webrtc-answer",
@@ -872,7 +769,6 @@ socket.on(
     }
 );
 
-
 // ==========================================
 // RECEBER RESPOSTA
 // ==========================================
@@ -886,18 +782,20 @@ socket.on(
             const peer =
                 peers[dados.de];
 
-
             if (!peer) {
                 return;
             }
 
+            console.log(
+                "📡 Resposta recebida de:",
+                dados.de
+            );
 
             await peer.setRemoteDescription(
                 new RTCSessionDescription(
                     dados.resposta
                 )
             );
-
 
             await adicionarCandidatosPendentes(
                 dados.de
@@ -913,7 +811,6 @@ socket.on(
     }
 );
 
-
 // ==========================================
 // RECEBER ICE
 // ==========================================
@@ -927,12 +824,10 @@ socket.on(
             const usuarioId =
                 dados.de;
 
-
             const peer =
                 criarPeerConnection(
                     usuarioId
                 );
-
 
             if (
                 peer.remoteDescription &&
@@ -946,6 +841,17 @@ socket.on(
                 );
 
             } else {
+
+                if (
+                    !candidatosPendentes[
+                        usuarioId
+                    ]
+                ) {
+
+                    candidatosPendentes[
+                        usuarioId
+                    ] = [];
+                }
 
                 candidatosPendentes[
                     usuarioId
@@ -964,9 +870,8 @@ socket.on(
     }
 );
 
-
 // ==========================================
-// ADICIONAR ICE PENDENTE
+// ICE PENDENTE
 // ==========================================
 
 async function adicionarCandidatosPendentes(
@@ -976,22 +881,16 @@ async function adicionarCandidatosPendentes(
     const peer =
         peers[usuarioId];
 
-
     if (!peer) {
         return;
     }
-
 
     const lista =
         candidatosPendentes[
             usuarioId
         ] || [];
 
-
-    for (
-        const candidato
-        of lista
-    ) {
+    for (const candidato of lista) {
 
         try {
 
@@ -1010,12 +909,10 @@ async function adicionarCandidatosPendentes(
         }
     }
 
-
     candidatosPendentes[
         usuarioId
     ] = [];
 }
-
 
 // ==========================================
 // USUÁRIO SAIU
@@ -1030,7 +927,6 @@ socket.on(
             usuarioId
         );
 
-
         if (peers[usuarioId]) {
 
             peers[usuarioId].close();
@@ -1038,24 +934,48 @@ socket.on(
             delete peers[usuarioId];
         }
 
-
         delete candidatosPendentes[
             usuarioId
         ];
-
 
         const audio =
             document.getElementById(
                 `audio-${usuarioId}`
             );
 
-
         if (audio) {
 
-            audio.srcObject =
-                null;
+            audio.pause();
+
+            audio.srcObject = null;
 
             audio.remove();
         }
+    }
+);
+
+// ==========================================
+// ERROS DO SOCKET
+// ==========================================
+
+socket.on(
+    "connect_error",
+    (erro) => {
+
+        console.error(
+            "Erro de conexão com servidor:",
+            erro
+        );
+    }
+);
+
+socket.on(
+    "connect",
+    () => {
+
+        console.log(
+            "✅ Conectado ao servidor:",
+            socket.id
+        );
     }
 );
